@@ -70,11 +70,11 @@ export default function Home() {
   const [budgets, setBudgets] = useState<any[]>([]);
   
   const [amount, setAmount] = useState("");
-  const [type, setType] = useState("income");
-  const [category, setCategory] = useState("");
+  const [type, setType] = useState("expense");
+  const [category, setCategory] = useState("Makanan dan Harian");
   const [description, setDescription] = useState("");
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().split('T')[0]);
-  const [penginput, setPenginput] = useState("Suami");
+  const [penginput, setPenginput] = useState("Istri");
   const [editId, setEditId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -137,18 +137,18 @@ export default function Home() {
     setCategory(trx.category);
     setDescription(trx.description || "");
     setTanggal(trx.tanggal || trx.created_at.split('T')[0]);
-    setPenginput(trx.penginput || "Suami");
+    setPenginput(trx.penginput || "Istri");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const cancelEdit = () => {
     setEditId(null);
     setAmount("");
-    setCategory("");
+    setCategory("Makanan dan Harian");
     setDescription("");
     setTanggal(new Date().toISOString().split('T')[0]);
-    setType("income");
-    setPenginput("Suami");
+    setType("expense");
+    setPenginput("Istri");
   };
 
   const handleDelete = async (id: string) => {
@@ -593,7 +593,7 @@ export default function Home() {
               </button>
               <button
                 type="button"
-                onClick={() => { setType("expense"); setCategory(""); }}
+                onClick={() => { setType("expense"); setCategory("Makanan dan Harian"); }}
                 className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 border ${type === 'expense' ? 'bg-[#fcf1ef] text-[#b85042] border-[#ebd1cd]' : 'bg-stone-50 text-stone-400 border-stone-200 hover:bg-stone-100'}`}
               >
                 - Pengeluaran
