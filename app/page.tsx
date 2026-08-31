@@ -63,7 +63,7 @@ const formatPeriodDisplay = (periodStr: string) => {
 const CURRENT_PERIOD = getPeriodFromDate(new Date().toISOString());
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("transaksi");
   
   const [saldo, setSaldo] = useState<number>(0);
   const [riwayat, setRiwayat] = useState<any[]>([]);
@@ -674,7 +674,7 @@ export default function Home() {
               />
             </div>
 
-            <button type="submit" disabled={loading} className={`w-full py-3.5 rounded-xl text-white font-bold tracking-wide transition-all duration-300 ${editId ? 'bg-[#c29642] hover:bg-[#a67f33]' : 'bg-[#786b5c] hover:bg-[#5e5447]'} ${loading ? 'opacity-70 scale-95' : 'hover:-translate-y-0.5 shadow-sm'}`}>
+            <button type="submit" disabled={loading} className={`w-full py-3.5 rounded-xl text-white font-bold tracking-wide transition-all duration-300 ${editId ? 'bg-[#c29642] hover:bg-[#a67f33]': 'bg-[#786b5c] hover:bg-[#5e5447]'} ${loading ? 'opacity-70 scale-95' : 'hover:-translate-y-0.5 shadow-sm'}`}>
               {loading ? "Menyimpan..." : editId ? "Simpan Pembaruan" : "Simpan Transaksi"}
             </button>
           </form>
