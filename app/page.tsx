@@ -100,9 +100,12 @@ export default function Home() {
     periods.add(CURRENT_PERIOD); 
 
     trxData?.forEach((trx) => {
-      if (trx.type === "income") hitungTotal += Number(trx.amount);
-      if (trx.type === "expense" && trx.category !== "Tabungan") hitungTotal -= Number(trx.amount);
-      if (trx.type === "expense" && trx.category === "Tabungan") hitungTotal -= Number(trx.amount);
+      const nominal = Number(trx.amount) || 0;
+      if (trx.type === "income") {
+        hitungTotal += nominal;
+      } else if (trx.type === "expense") {
+        hitungTotal -= nominal;
+      }
       
       if (trx.tanggal) {
         periods.add(getPeriodFromDate(trx.tanggal));
@@ -674,7 +677,7 @@ export default function Home() {
               />
             </div>
 
-            <button type="submit" disabled={loading} className={`w-full py-3.5 rounded-xl text-white font-bold tracking-wide transition-all duration-300 ${editId ? 'bg-[#c29642] hover:bg-[#a67f33]': 'bg-[#786b5c] hover:bg-[#5e5447]'} ${loading ? 'opacity-70 scale-95' : 'hover:-translate-y-0.5 shadow-sm'}`}>
+            <button type="submit" disabled={loading} className={`w-full py-3.5 rounded-xl text-white font-bold tracking-wide transition-all duration-300 ${editId ? 'bg-[#c29642] hover:bg-[#a67f33]' : 'bg-[#786b5c] hover:bg-[#5e5447]'} ${loading ? 'opacity-70 scale-95' : 'hover:-translate-y-0.5 shadow-sm'}`}>
               {loading ? "Menyimpan..." : editId ? "Simpan Pembaruan" : "Simpan Transaksi"}
             </button>
           </form>
