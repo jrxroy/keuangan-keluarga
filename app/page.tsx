@@ -87,9 +87,11 @@ export default function Home() {
   const [budgetInputs, setBudgetInputs] = useState<Record<string, string>>({});
 
   const fetchData = async () => {
+    // Menggunakan .range(0, 9999) agar seluruh data transaksi masa lalu terbaca sempurna tanpa terpotong batas 1000 baris
     const { data: trxData, error: trxError } = await supabase
       .from("transactions")
       .select("*")
+      .range(0, 9999)
       .order("tanggal", { ascending: false })
       .order("created_at", { ascending: false });
 
