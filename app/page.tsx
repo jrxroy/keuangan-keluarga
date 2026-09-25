@@ -87,7 +87,12 @@ export default function Home() {
   const [budgetInputs, setBudgetInputs] = useState<Record<string, string>>({});
 
   const fetchData = async () => {
-    // Menggunakan .range(0, 9999) agar seluruh data transaksi masa lalu terbaca sempurna tanpa terpotong batas 1000 baris
+    // Ambil total saldo global langsung dari View database secara akurat tanpa batas baris
+    const { data: summaryData } = await supabase.from("v_saldo_summary").select("*").single();
+    if (summaryData) {
+      setSaldo(Number(summaryData.total_saldo) || 0);
+    }
+
     const { data: trxData, error: trxError } = await supabase
       .from("transactions")
       .select("*")
@@ -97,24 +102,15 @@ export default function Home() {
 
     if (trxError) console.error("Gagal mengambil transaksi:", trxError);
 
-    let hitungTotal = 0;
     const periods = new Set<string>();
     periods.add(CURRENT_PERIOD); 
 
     trxData?.forEach((trx) => {
-      const nominal = Number(trx.amount) || 0;
-      if (trx.type === "income") {
-        hitungTotal += nominal;
-      } else if (trx.type === "expense") {
-        hitungTotal -= nominal;
-      }
-      
       if (trx.tanggal) {
         periods.add(getPeriodFromDate(trx.tanggal));
       }
     });
     
-    setSaldo(hitungTotal);
     setRiwayat(trxData || []);
     
     const sortedPeriods = Array.from(periods).sort().reverse();
@@ -244,16 +240,6 @@ export default function Home() {
 
   const saldoPeriodeIni = totalPemasukanBulanIni - totalPengeluaranBulanIni;
 
-  const allTabunganTrx = riwayat.filter(trx => trx.category === "Tabungan" || trx.category === "Penarikan Tabungan");
-  const totalTabungan = allTabunganTrx.reduce((sum, trx) => {
-    if (trx.category === "Tabungan" && trx.type === "expense") return sum + Number(trx.amount);
-    if (trx.category === "Penarikan Tabungan" && trx.type === "income") return sum - Number(trx.amount);
-    return sum;
-  }, 0);
-
-  const sortedPeriodsForChart = [...availablePeriods].reverse();
-  const CHART_MAX_LIMIT = 11000000;
-
   const kelolaPeriodTrx = kelolaPeriod === "SEMUA" 
     ? riwayat 
     : riwayat.filter(trx => getPeriodFromDate(trx.tanggal || trx.created_at) === kelolaPeriod);
@@ -268,6 +254,9 @@ export default function Home() {
   }, {});
 
   const sortedDates = Object.keys(groupedTransactions).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+  const sortedPeriodsForChart = [...availablePeriods].reverse();
+  const CHART_MAX_LIMIT = 11000000;
 
   return (
     <main className="w-full max-w-md mx-auto flex flex-col items-center mt-6 p-5 bg-[#faf9f6] rounded-3xl shadow-sm border border-stone-200 mb-10 min-h-screen text-stone-800 font-sans">
@@ -423,7 +412,6 @@ export default function Home() {
                 });
 
                 const spent = catTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
-                
                 const percentage = limit > 0 ? (spent / limit) * 100 : 0;
                 const barWidth = Math.min(percentage, 100);
                 const isExpanded = expandedCategory === cat;
@@ -489,14 +477,18 @@ export default function Home() {
             <div className="absolute -top-4 -right-4 text-8xl opacity-10 transform group-hover:scale-110 transition-transform duration-500">💎</div>
             <p className="text-xs text-[#8a7653] mb-2 font-bold tracking-widest uppercase relative z-10">Total Aset Tabungan</p>
             <p className="text-4xl md:text-5xl font-black text-stone-800 relative z-10">
-              Rp {totalTabungan.toLocaleString("id-ID")}
+              Rp {riwayat.filter(t => t.category === "Tabungan" || t.category === "Penarikan Tabungan").reduce((sum, trx) => {
+                if (trx.category === "Tabungan" && trx.type === "expense") return sum + Number(trx.amount);
+                if (trx.category === "Penarikan Tabungan" && trx.type === "income") return sum - Number(trx.amount);
+                return sum;
+              }, 0).toLocaleString("id-ID")}
             </p>
           </div>
 
           <h2 className="text-xs font-bold text-stone-500 uppercase tracking-widest border-b border-stone-200 pb-2 mt-2">Akumulasi Tabungan Per Bulan</h2>
           <div className="space-y-3">
             {availablePeriods.map(period => {
-              const tabunganInPeriod = allTabunganTrx.filter(t => getPeriodFromDate(t.tanggal || t.created_at) === period);
+              const tabunganInPeriod = riwayat.filter(t => (t.category === "Tabungan" || t.category === "Penarikan Tabungan") && getPeriodFromDate(t.tanggal || t.created_at) === period);
               const sumInPeriod = tabunganInPeriod.reduce((sum, t) => {
                 const c = (t.category || "").trim().toLowerCase();
                 if (c === "tabungan" && t.type === "expense") return sum + Number(t.amount);
