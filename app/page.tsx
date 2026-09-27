@@ -87,7 +87,6 @@ export default function Home() {
   const [budgetInputs, setBudgetInputs] = useState<Record<string, string>>({});
 
   const fetchData = async () => {
-    // Ambil total saldo global langsung dari View database secara akurat tanpa batas baris
     const { data: summaryData } = await supabase.from("v_saldo_summary").select("*").single();
     if (summaryData) {
       setSaldo(Number(summaryData.total_saldo) || 0);
@@ -217,7 +216,7 @@ export default function Home() {
   });
   
   const selectedPeriodExpense = selectedPeriodTrx
-    .filter(trx => trx.type === "expense" && trx.category !== "Tabungan")
+    .filter(trx => trx.type === "expense")
     .reduce((sum, trx) => sum + Number(trx.amount), 0);
 
   const selectedPeriodIncome = selectedPeriodTrx
@@ -235,7 +234,7 @@ export default function Home() {
     .reduce((sum, trx) => sum + Number(trx.amount), 0);
 
   const totalPengeluaranBulanIni = currentMonthTrx
-    .filter(trx => trx.type === "expense" && trx.category !== "Tabungan")
+    .filter(trx => trx.type === "expense")
     .reduce((sum, trx) => sum + Number(trx.amount), 0);
 
   const saldoPeriodeIni = totalPemasukanBulanIni - totalPengeluaranBulanIni;
@@ -525,7 +524,7 @@ export default function Home() {
               {sortedPeriodsForChart.map(period => {
                 const pTrx = riwayat.filter(t => getPeriodFromDate(t.tanggal || t.created_at) === period);
                 const inc = pTrx.filter(t => t.type === "income" && t.category !== "Penarikan Tabungan").reduce((s, t) => s + Number(t.amount), 0);
-                const exp = pTrx.filter(t => t.type === "expense" && t.category !== "Tabungan").reduce((s, t) => s + Number(t.amount), 0);
+                const exp = pTrx.filter(t => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
                 
                 const incPct = Math.min((inc / CHART_MAX_LIMIT) * 100, 100);
                 const expPct = Math.min((exp / CHART_MAX_LIMIT) * 100, 100);
