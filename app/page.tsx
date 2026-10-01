@@ -27,7 +27,6 @@ const CATEGORY_ICONS: Record<string, string> = {
   "Penarikan Tabungan": "📥"
 };
 
-// Fungsi pembantu agar tanggal selalu sesuai dengan zona waktu lokal perangkat (WIB / GMT+7)
 const getLocalDateString = () => {
   const now = new Date();
   const year = now.getFullYear();
@@ -97,7 +96,6 @@ export default function Home() {
   const [budgetInputs, setBudgetInputs] = useState<Record<string, string>>({});
 
   const fetchData = async () => {
-    // Ambil saldo global & total tabungan langsung dari SQL View Supabase
     const { data: summaryData } = await supabase.from("v_saldo_summary").select("*").single();
     if (summaryData) {
       setSaldo(Number(summaryData.total_saldo) || 0);
@@ -231,8 +229,9 @@ export default function Home() {
     .filter(trx => trx.type === "expense")
     .reduce((sum, trx) => sum + Number(trx.amount), 0);
 
+  // Penarikan tabungan ikut dihitung sebagai penambah kas periode
   const selectedPeriodIncome = selectedPeriodTrx
-    .filter(trx => trx.type === "income" && trx.category !== "Penarikan Tabungan")
+    .filter(trx => trx.type === "income")
     .reduce((sum, trx) => sum + Number(trx.amount), 0);
 
   const currentMonthTrx = riwayat.filter(trx => {
@@ -241,8 +240,9 @@ export default function Home() {
     return tgl >= startStr && tgl <= endStr;
   });
   
+  // Penarikan tabungan ikut dihitung sebagai pemasukan bulan ini
   const totalPemasukanBulanIni = currentMonthTrx
-    .filter(trx => trx.type === "income" && trx.category !== "Penarikan Tabungan")
+    .filter(trx => trx.type === "income")
     .reduce((sum, trx) => sum + Number(trx.amount), 0);
 
   const totalPengeluaranBulanIni = currentMonthTrx
@@ -531,7 +531,7 @@ export default function Home() {
             <div className="space-y-4 pt-2">
               {sortedPeriodsForChart.map(period => {
                 const pTrx = riwayat.filter(t => getPeriodFromDate(t.tanggal || t.created_at) === period);
-                const inc = pTrx.filter(t => t.type === "income" && t.category !== "Penarikan Tabungan").reduce((s, t) => s + Number(t.amount), 0);
+                const inc = pTrx.filter(t => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
                 const exp = pTrx.filter(t => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
                 
                 const incPct = Math.min((inc / CHART_MAX_LIMIT) * 100, 100);
