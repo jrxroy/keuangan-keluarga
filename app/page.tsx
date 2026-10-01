@@ -92,6 +92,7 @@ export default function Home() {
   const [kelolaPeriod, setKelolaPeriod] = useState(CURRENT_PERIOD);
 
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [expandedTabunganPeriod, setExpandedTabunganPeriod] = useState<string | null>(null);
   const [isEditingBudget, setIsEditingBudget] = useState(false);
   const [budgetInputs, setBudgetInputs] = useState<Record<string, string>>({});
 
@@ -229,7 +230,6 @@ export default function Home() {
     .filter(trx => trx.type === "expense")
     .reduce((sum, trx) => sum + Number(trx.amount), 0);
 
-  // Penarikan tabungan ikut dihitung sebagai penambah kas periode
   const selectedPeriodIncome = selectedPeriodTrx
     .filter(trx => trx.type === "income")
     .reduce((sum, trx) => sum + Number(trx.amount), 0);
@@ -240,7 +240,6 @@ export default function Home() {
     return tgl >= startStr && tgl <= endStr;
   });
   
-  // Penarikan tabungan ikut dihitung sebagai pemasukan bulan ini
   const totalPemasukanBulanIni = currentMonthTrx
     .filter(trx => trx.type === "income")
     .reduce((sum, trx) => sum + Number(trx.amount), 0);
@@ -505,13 +504,48 @@ export default function Home() {
               
               if (sumInPeriod === 0) return null;
 
+              const isExpanded = expandedTabunganPeriod === period;
+
               return (
-                <div key={period} className="bg-white p-4 rounded-2xl border border-stone-200 flex justify-between items-center shadow-sm">
-                  <div>
-                    <p className="text-sm font-bold text-stone-700">{formatPeriodDisplay(period)}</p>
-                    <p className="text-[11px] text-stone-400 font-semibold mt-0.5">{tabunganInPeriod.length} mutasi tabungan</p>
+                <div key={period} className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm transition-all">
+                  <div 
+                    onClick={() => setExpandedTabunganPeriod(isExpanded ? null : period)}
+                    className="p-4 flex justify-between items-center cursor-pointer hover:bg-stone-50 transition-colors"
+                  >
+                    <div>
+                      <p className="text-sm font-bold text-stone-700 flex items-center gap-1.5">
+                        {formatPeriodDisplay(period)}
+                        <svg className={`w-3.5 h-3.5 text-stone-400 transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                      </p>
+                      <p className="text-[11px] text-stone-400 font-semibold mt-0.5">{tabunganInPeriod.length} mutasi tabungan</p>
+                    </div>
+                    <p className={`font-bold px-3 py-1 rounded-lg border ${sumInPeriod >= 0 ? 'text-[#5d7a5b] bg-[#eaf0ea] border-[#c6d6c6]' : 'text-[#a85a4f] bg-[#f9ebe9] border-[#ebd1cd]'}`}>
+                      {sumInPeriod >= 0 ? '+ ' : '- '}Rp {Math.abs(sumInPeriod).toLocaleString("id-ID")}
+                    </p>
                   </div>
-                  <p className="font-bold text-[#5d7a5b] bg-[#eaf0ea] px-3 py-1 rounded-lg border border-[#c6d6c6]">+ Rp {sumInPeriod.toLocaleString("id-ID")}</p>
+
+                  {isExpanded && (
+                    <div className="bg-[#fcfbf9] border-t border-stone-100 p-4 space-y-3">
+                      {tabunganInPeriod.map(trx => (
+                        <div key={trx.id} className="flex justify-between items-start text-xs border-b border-stone-200 pb-2.5 last:border-0 last:pb-0">
+                          <div>
+                            <p className="text-stone-700 font-semibold mb-0.5 flex items-center gap-1">
+                              <span>{CATEGORY_ICONS[trx.category] || "📌"}</span>
+                              {trx.description || trx.category}
+                            </p>
+                            <p className="text-stone-400 font-medium flex items-center gap-1">
+                              {new Date(trx.tanggal || trx.created_at).toLocaleDateString("id-ID", { day: 'numeric', month: 'short' })}
+                              <span className="opacity-50">•</span>
+                              {trx.penginput === 'Suami' ? '👨 Suami' : '👩 Istri'}
+                            </p>
+                          </div>
+                          <span className={`font-bold whitespace-nowrap px-2 py-0.5 rounded-md ${trx.category === "Tabungan" ? 'text-[#5d7a5b] bg-[#eaf0ea]' : 'text-[#a85a4f] bg-[#f9ebe9]'}`}>
+                            {trx.category === "Tabungan" ? '+ ' : '- '}Rp {Number(trx.amount).toLocaleString("id-ID")}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
