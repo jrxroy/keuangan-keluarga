@@ -27,6 +27,15 @@ const CATEGORY_ICONS: Record<string, string> = {
   "Penarikan Tabungan": "📥"
 };
 
+// Fungsi pembantu agar tanggal selalu sesuai dengan zona waktu lokal perangkat (WIB / GMT+7)
+const getLocalDateString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const getPeriodFromDate = (dateStr: string) => {
   const d = new Date(dateStr);
   let y = d.getFullYear();
@@ -60,12 +69,13 @@ const formatPeriodDisplay = (periodStr: string) => {
   return `${months[parseInt(month) - 1]} ${year}`;
 };
 
-const CURRENT_PERIOD = getPeriodFromDate(new Date().toISOString());
+const CURRENT_PERIOD = getPeriodFromDate(getLocalDateString());
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("transaksi");
   
   const [saldo, setSaldo] = useState<number>(0);
+  const [totalTabunganServer, setTotalTabunganServer] = useState<number>(0);
   const [riwayat, setRiwayat] = useState<any[]>([]);
   const [budgets, setBudgets] = useState<any[]>([]);
   
@@ -73,7 +83,7 @@ export default function Home() {
   const [type, setType] = useState("expense");
   const [category, setCategory] = useState("Makanan dan Harian");
   const [description, setDescription] = useState("");
-  const [tanggal, setTanggal] = useState(() => new Date().toISOString().split('T')[0]);
+  const [tanggal, setTanggal] = useState(() => getLocalDateString());
   const [penginput, setPenginput] = useState("Istri");
   const [editId, setEditId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -87,9 +97,11 @@ export default function Home() {
   const [budgetInputs, setBudgetInputs] = useState<Record<string, string>>({});
 
   const fetchData = async () => {
+    // Ambil saldo global & total tabungan langsung dari SQL View Supabase
     const { data: summaryData } = await supabase.from("v_saldo_summary").select("*").single();
     if (summaryData) {
       setSaldo(Number(summaryData.total_saldo) || 0);
+      setTotalTabunganServer(Number(summaryData.total_tabungan) || 0);
     }
 
     const { data: trxData, error: trxError } = await supabase
@@ -146,7 +158,7 @@ export default function Home() {
     setAmount("");
     setCategory("Makanan dan Harian");
     setDescription("");
-    setTanggal(new Date().toISOString().split('T')[0]);
+    setTanggal(getLocalDateString());
     setType("expense");
     setPenginput("Istri");
   };
@@ -476,11 +488,7 @@ export default function Home() {
             <div className="absolute -top-4 -right-4 text-8xl opacity-10 transform group-hover:scale-110 transition-transform duration-500">💎</div>
             <p className="text-xs text-[#8a7653] mb-2 font-bold tracking-widest uppercase relative z-10">Total Aset Tabungan</p>
             <p className="text-4xl md:text-5xl font-black text-stone-800 relative z-10">
-              Rp {riwayat.filter(t => t.category === "Tabungan" || t.category === "Penarikan Tabungan").reduce((sum, trx) => {
-                if (trx.category === "Tabungan" && trx.type === "expense") return sum + Number(trx.amount);
-                if (trx.category === "Penarikan Tabungan" && trx.type === "income") return sum - Number(trx.amount);
-                return sum;
-              }, 0).toLocaleString("id-ID")}
+              Rp {totalTabunganServer.toLocaleString("id-ID")}
             </p>
           </div>
 
