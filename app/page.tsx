@@ -68,6 +68,30 @@ const formatPeriodDisplay = (periodStr: string) => {
   return `${months[parseInt(month) - 1]} ${year}`;
 };
 
+// Helper untuk menghitung awal (Senin) dan akhir (Minggu) dari suatu tanggal
+const getWeekRange = (dateStr: string) => {
+  const d = new Date(dateStr);
+  const day = d.getDay();
+  const diffToMonday = (day === 0 ? -6 : 1) - day;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diffToMonday);
+  
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  
+  const formatDate = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const dayOfMonth = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dayOfMonth}`;
+  };
+
+  return {
+    startStr: formatDate(monday),
+    endStr: formatDate(sunday)
+  };
+};
+
 const CURRENT_PERIOD = getPeriodFromDate(getLocalDateString());
 
 export default function Home() {
@@ -90,9 +114,11 @@ export default function Home() {
   const [availablePeriods, setAvailablePeriods] = useState<string[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState(CURRENT_PERIOD);
   const [kelolaPeriod, setKelolaPeriod] = useState(CURRENT_PERIOD);
+  const [mingguanPeriod, setMingguanPeriod] = useState(CURRENT_PERIOD);
 
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [expandedTabunganPeriod, setExpandedTabunganPeriod] = useState<string | null>(null);
+  const [expandedWeekKey, setExpandedWeekKey] = useState<string | null>(null);
   const [isEditingBudget, setIsEditingBudget] = useState(false);
   const [budgetInputs, setBudgetInputs] = useState<Record<string, string>>({});
 
@@ -265,6 +291,28 @@ export default function Home() {
 
   const sortedDates = Object.keys(groupedTransactions).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
+  // --- LOGIKA LAPORAN MINGGUAN ---
+  const mingguanFilteredTrx = mingguanPeriod === "SEMUA"
+    ? riwayat
+    : riwayat.filter(trx => getPeriodFromDate(trx.tanggal || trx.created_at) === mingguanPeriod);
+
+  const groupedWeeklyTransactions = mingguanFilteredTrx.reduce((groups: Record<string, { start: string; end: string; items: any[] }>, trx) => {
+    const tgl = trx.tanggal || trx.created_at.split('T')[0];
+    const { startStr, endStr } = getWeekRange(tgl);
+    const key = `${startStr}_${endStr}`;
+    if (!groups[key]) {
+      groups[key] = { start: startStr, end: endStr, items: [] };
+    }
+    groups[key].items.push(trx);
+    return groups;
+  }, {});
+
+  const sortedWeekKeys = Object.keys(groupedWeeklyTransactions).sort((a, b) => {
+    const dateA = new Date(groupedWeeklyTransactions[a].start).getTime();
+    const dateB = new Date(groupedWeeklyTransactions[b].start).getTime();
+    return dateB - dateA;
+  });
+
   const sortedPeriodsForChart = [...availablePeriods].reverse();
   const CHART_MAX_LIMIT = 11000000;
 
@@ -307,29 +355,35 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Navigasi 4 Tab */}
-      <div className="grid grid-cols-4 gap-1 w-full mb-6 bg-stone-100 rounded-xl p-1.5 border border-stone-200 shadow-inner">
+      {/* Navigasi Tab (5 Tab termasuk Laporan Mingguan) */}
+      <div className="grid grid-cols-5 gap-1 w-full mb-6 bg-stone-100 rounded-xl p-1.5 border border-stone-200 shadow-inner">
         <button
           onClick={() => setActiveTab("dashboard")}
-          className={`py-2 text-[11px] font-bold transition-all duration-300 ${activeTab === 'dashboard' ? 'bg-white text-stone-800 rounded-lg shadow-sm border border-stone-200' : 'text-stone-500 hover:text-stone-700'}`}
+          className={`py-2 text-[10px] font-bold transition-all duration-300 ${activeTab === 'dashboard' ? 'bg-white text-stone-800 rounded-lg shadow-sm border border-stone-200' : 'text-stone-500 hover:text-stone-700'}`}
         >
           📊 Analisis
         </button>
         <button
+          onClick={() => setActiveTab("mingguan")}
+          className={`py-2 text-[10px] font-bold transition-all duration-300 ${activeTab === 'mingguan' ? 'bg-white text-stone-800 rounded-lg shadow-sm border border-stone-200' : 'text-stone-500 hover:text-stone-700'}`}
+        >
+          🗓️ Mingguan
+        </button>
+        <button
           onClick={() => setActiveTab("tabungan")}
-          className={`py-2 text-[11px] font-bold transition-all duration-300 ${activeTab === 'tabungan' ? 'bg-white text-stone-800 rounded-lg shadow-sm border border-stone-200' : 'text-stone-500 hover:text-stone-700'}`}
+          className={`py-2 text-[10px] font-bold transition-all duration-300 ${activeTab === 'tabungan' ? 'bg-white text-stone-800 rounded-lg shadow-sm border border-stone-200' : 'text-stone-500 hover:text-stone-700'}`}
         >
           💎 Tabungan
         </button>
         <button
           onClick={() => setActiveTab("chart")}
-          className={`py-2 text-[11px] font-bold transition-all duration-300 ${activeTab === 'chart' ? 'bg-white text-stone-800 rounded-lg shadow-sm border border-stone-200' : 'text-stone-500 hover:text-stone-700'}`}
+          className={`py-2 text-[10px] font-bold transition-all duration-300 ${activeTab === 'chart' ? 'bg-white text-stone-800 rounded-lg shadow-sm border border-stone-200' : 'text-stone-500 hover:text-stone-700'}`}
         >
           📈 Grafik
         </button>
         <button
           onClick={() => setActiveTab("transaksi")}
-          className={`py-2 text-[11px] font-bold transition-all duration-300 ${activeTab === 'transaksi' ? 'bg-white text-stone-800 rounded-lg shadow-sm border border-stone-200' : 'text-stone-500 hover:text-stone-700'}`}
+          className={`py-2 text-[10px] font-bold transition-all duration-300 ${activeTab === 'transaksi' ? 'bg-white text-stone-800 rounded-lg shadow-sm border border-stone-200' : 'text-stone-500 hover:text-stone-700'}`}
         >
           ✍️ Kelola
         </button>
@@ -480,7 +534,103 @@ export default function Home() {
         </div>
       )}
 
-      {/* ================= TAB 2: TABUNGAN ================= */}
+      {/* ================= TAB 2: LAPORAN MINGGUAN ================= */}
+      {activeTab === "mingguan" && (
+        <div className="w-full space-y-4 animate-fade-in">
+          <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm flex justify-between items-center">
+            <div>
+              <h2 className="text-sm font-bold text-stone-700">Laporan Mingguan</h2>
+              <p className="text-[11px] text-stone-400">Ringkasan transaksi Senin s/d Minggu</p>
+            </div>
+            <select
+              value={mingguanPeriod}
+              onChange={(e) => setMingguanPeriod(e.target.value)}
+              className="bg-[#fcfbf9] text-stone-700 text-xs font-bold border border-stone-300 rounded-lg p-1.5 focus:outline-none cursor-pointer"
+            >
+              <option value="SEMUA">Semua Periode</option>
+              {availablePeriods.map(p => (
+                <option key={p} value={p}>{formatPeriodDisplay(p)}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-3">
+            {sortedWeekKeys.length === 0 ? (
+              <div className="text-center py-10 bg-white rounded-2xl border border-stone-200 border-dashed">
+                <p className="text-stone-400 text-xs font-semibold">Tidak ada transaksi mingguan pada periode ini.</p>
+              </div>
+            ) : (
+              sortedWeekKeys.map((weekKey) => {
+                const group = groupedWeeklyTransactions[weekKey];
+                const incTotal = group.items.filter(t => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
+                const expTotal = group.items.filter(t => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
+                const selisih = incTotal - expTotal;
+                const isExpanded = expandedWeekKey === weekKey;
+
+                const startLabel = new Date(group.start).toLocaleDateString("id-ID", { day: 'numeric', month: 'short' });
+                const endLabel = new Date(group.end).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' });
+
+                return (
+                  <div key={weekKey} className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm transition-all">
+                    <div
+                      onClick={() => setExpandedWeekKey(isExpanded ? null : weekKey)}
+                      className="p-4 cursor-pointer hover:bg-stone-50 transition-colors"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <p className="text-xs font-bold text-stone-700 flex items-center gap-1.5">
+                            🗓️ {startLabel} - {endLabel}
+                            <svg className={`w-3.5 h-3.5 text-stone-400 transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                          </p>
+                          <p className="text-[10px] text-stone-400 font-semibold mt-0.5">{group.items.length} transaksi</p>
+                        </div>
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${selisih >= 0 ? 'text-[#5d7a5b] bg-[#eaf0ea] border-[#c6d6c6]' : 'text-[#a85a4f] bg-[#f9ebe9] border-[#ebd1cd]'}`}>
+                          {selisih >= 0 ? '+' : '-'} Rp {Math.abs(selisih).toLocaleString("id-ID")}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-stone-100 text-[11px] font-bold">
+                        <div className="flex justify-between bg-[#f4f7f4] px-2.5 py-1 rounded-md text-[#5d7a5b]">
+                          <span className="font-medium text-stone-500">Masuk</span>
+                          <span>+ Rp {incTotal.toLocaleString("id-ID")}</span>
+                        </div>
+                        <div className="flex justify-between bg-[#fbf2f1] px-2.5 py-1 rounded-md text-[#a85a4f]">
+                          <span className="font-medium text-stone-500">Keluar</span>
+                          <span>- Rp {expTotal.toLocaleString("id-ID")}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="bg-[#fcfbf9] border-t border-stone-100 p-4 space-y-2.5">
+                        {group.items.map(trx => (
+                          <div key={trx.id} className="flex justify-between items-start text-xs border-b border-stone-200 pb-2 last:border-0 last:pb-0">
+                            <div>
+                              <p className="text-stone-700 font-semibold mb-0.5 flex items-center gap-1">
+                                <span>{CATEGORY_ICONS[trx.category] || "📌"}</span> {trx.description || trx.category}
+                              </p>
+                              <p className="text-stone-400 font-medium flex items-center gap-1 text-[10px]">
+                                {new Date(trx.tanggal || trx.created_at).toLocaleDateString("id-ID", { weekday: 'short', day: 'numeric', month: 'short' })}
+                                <span className="opacity-50">•</span>
+                                {trx.penginput === 'Suami' ? '👨' : '👩'}
+                              </p>
+                            </div>
+                            <span className={`font-bold whitespace-nowrap text-xs ${trx.type === 'income' ? 'text-[#5d7a5b]' : 'text-[#a85a4f]'}`}>
+                              {trx.type === 'income' ? '+' : '-'} Rp {Number(trx.amount).toLocaleString("id-ID")}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ================= TAB 3: TABUNGAN ================= */}
       {activeTab === "tabungan" && (
         <div className="w-full space-y-4 animate-fade-in">
           <div className="bg-gradient-to-br from-[#ebe1ce] via-[#f7f4ec] to-white p-7 rounded-3xl border border-[#d6cebf] text-center shadow-sm relative overflow-hidden group">
@@ -553,7 +703,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* ================= TAB 3: GRAFIK ================= */}
+      {/* ================= TAB 4: GRAFIK ================= */}
       {activeTab === "chart" && (
         <div className="w-full space-y-4 animate-fade-in">
           <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-sm space-y-4">
@@ -607,7 +757,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* ================= TAB 4: KELOLA TRANSAKSI ================= */}
+      {/* ================= TAB 5: KELOLA TRANSAKSI ================= */}
       {activeTab === "transaksi" && (
         <div className="w-full animate-fade-in">
           <form onSubmit={handleSubmitTrx} className="w-full space-y-4 mb-8 bg-white p-5 rounded-3xl border border-stone-200 shadow-sm">
@@ -746,13 +896,37 @@ export default function Home() {
                   year: 'numeric'
                 });
 
+                // Kalkulasi total harian
+                const dailyIncome = dayTransactions
+                  .filter(trx => trx.type === "income")
+                  .reduce((sum, trx) => sum + Number(trx.amount), 0);
+
+                const dailyExpense = dayTransactions
+                  .filter(trx => trx.type === "expense")
+                  .reduce((sum, trx) => sum + Number(trx.amount), 0);
+
                 return (
                   <div key={dateKey} className="space-y-2">
-                    <div className="bg-[#f2ece1] px-3.5 py-1.5 rounded-xl border border-[#e3d7c7] flex justify-between items-center">
-                      <span className="text-xs font-bold text-[#7a6a53] tracking-wide">📅 {formattedDateHeader}</span>
-                      <span className="text-[10px] font-bold text-[#8a7653] bg-white/70 px-2 py-0.5 rounded-md">
-                        {dayTransactions.length} transaksi
-                      </span>
+                    {/* Header Tanggal dengan Rincian Total Masuk & Keluar Harian */}
+                    <div className="bg-[#f2ece1] px-3.5 py-2 rounded-xl border border-[#e3d7c7] flex flex-col gap-1.5">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-[#7a6a53] tracking-wide">📅 {formattedDateHeader}</span>
+                        <span className="text-[10px] font-bold text-[#8a7653] bg-white/70 px-2 py-0.5 rounded-md">
+                          {dayTransactions.length} transaksi
+                        </span>
+                      </div>
+                      <div className="flex justify-end gap-3 text-[10px] font-bold border-t border-[#e3d7c7]/60 pt-1">
+                        {dailyIncome > 0 && (
+                          <span className="text-[#5d7a5b] bg-[#eaf0ea] px-2 py-0.5 rounded-md">
+                            Masuk: +Rp {dailyIncome.toLocaleString("id-ID")}
+                          </span>
+                        )}
+                        {dailyExpense > 0 && (
+                          <span className="text-[#a85a4f] bg-[#f9ebe9] px-2 py-0.5 rounded-md">
+                            Keluar: -Rp {dailyExpense.toLocaleString("id-ID")}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="space-y-2 pl-1">
