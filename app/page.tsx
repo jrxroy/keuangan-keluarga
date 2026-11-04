@@ -68,7 +68,6 @@ const formatPeriodDisplay = (periodStr: string) => {
   return `${months[parseInt(month) - 1]} ${year}`;
 };
 
-// Helper untuk menghitung awal (Senin) dan akhir (Minggu) dari suatu tanggal
 const getWeekRange = (dateStr: string) => {
   const d = new Date(dateStr);
   const day = d.getDay();
@@ -244,7 +243,6 @@ export default function Home() {
     }
   };
 
-  // --- FILTERING DATA ---
   const { startStr: selStart, endStr: selEnd } = getPeriodDates(selectedPeriod);
   
   const selectedPeriodTrx = riwayat.filter(trx => {
@@ -291,7 +289,6 @@ export default function Home() {
 
   const sortedDates = Object.keys(groupedTransactions).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
-  // --- LOGIKA LAPORAN MINGGUAN ---
   const mingguanFilteredTrx = mingguanPeriod === "SEMUA"
     ? riwayat
     : riwayat.filter(trx => getPeriodFromDate(trx.tanggal || trx.created_at) === mingguanPeriod);
@@ -327,7 +324,6 @@ export default function Home() {
         </p>
       </div>
       
-      {/* Kartu Saldo Global & Arus Kas Bulan Berjalan */}
       <div className="w-full mb-6 bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden flex flex-col">
         <div className="p-5 text-center border-b border-stone-100">
           <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest mb-1.5">Saldo Gabungan</p>
@@ -355,7 +351,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Navigasi Tab (5 Tab termasuk Laporan Mingguan) */}
       <div className="grid grid-cols-5 gap-1 w-full mb-6 bg-stone-100 rounded-xl p-1.5 border border-stone-200 shadow-inner">
         <button
           onClick={() => setActiveTab("dashboard")}
@@ -389,7 +384,6 @@ export default function Home() {
         </button>
       </div>
 
-      {/* ================= TAB 1: ANALISIS ================= */}
       {activeTab === "dashboard" && (
         <div className="w-full space-y-4 animate-fade-in">
           <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
@@ -520,7 +514,10 @@ export default function Home() {
                                   {trx.penginput === 'Suami' ? '👨' : '👩'}
                                 </p>
                               </div>
-                              <span className="text-[#a85a4f] font-bold whitespace-nowrap bg-[#f9ebe9] px-2 py-0.5 rounded-md">- Rp {Number(trx.amount).toLocaleString("id-ID")}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[#a85a4f] font-bold whitespace-nowrap bg-[#f9ebe9] px-2 py-0.5 rounded-md">- Rp {Number(trx.amount).toLocaleString("id-ID")}</span>
+                                <button onClick={() => handleEdit(trx)} className="text-[10px] font-bold text-stone-500 hover:text-stone-700 bg-stone-100 border border-stone-200 px-2 py-0.5 rounded-md transition-colors" title="Edit Transaksi">✏️ Edit</button>
+                              </div>
                             </div>
                           ))
                         )}
@@ -534,7 +531,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* ================= TAB 2: LAPORAN MINGGUAN ================= */}
       {activeTab === "mingguan" && (
         <div className="w-full space-y-4 animate-fade-in">
           <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm flex justify-between items-center">
@@ -630,7 +626,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* ================= TAB 3: TABUNGAN ================= */}
       {activeTab === "tabungan" && (
         <div className="w-full space-y-4 animate-fade-in">
           <div className="bg-gradient-to-br from-[#ebe1ce] via-[#f7f4ec] to-white p-7 rounded-3xl border border-[#d6cebf] text-center shadow-sm relative overflow-hidden group">
@@ -703,7 +698,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* ================= TAB 4: GRAFIK ================= */}
       {activeTab === "chart" && (
         <div className="w-full space-y-4 animate-fade-in">
           <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-sm space-y-4">
@@ -757,7 +751,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* ================= TAB 5: KELOLA TRANSAKSI ================= */}
       {activeTab === "transaksi" && (
         <div className="w-full animate-fade-in">
           <form onSubmit={handleSubmitTrx} className="w-full space-y-4 mb-8 bg-white p-5 rounded-3xl border border-stone-200 shadow-sm">
@@ -896,7 +889,6 @@ export default function Home() {
                   year: 'numeric'
                 });
 
-                // Kalkulasi total harian
                 const dailyIncome = dayTransactions
                   .filter(trx => trx.type === "income")
                   .reduce((sum, trx) => sum + Number(trx.amount), 0);
@@ -907,7 +899,6 @@ export default function Home() {
 
                 return (
                   <div key={dateKey} className="space-y-2">
-                    {/* Header Tanggal dengan Rincian Total Masuk & Keluar Harian */}
                     <div className="bg-[#f2ece1] px-3.5 py-2 rounded-xl border border-[#e3d7c7] flex flex-col gap-1.5">
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-bold text-[#7a6a53] tracking-wide">📅 {formattedDateHeader}</span>
